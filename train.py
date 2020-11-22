@@ -1,5 +1,6 @@
 import sys
 import os
+from pathlib import Path
 
 import warnings
 
@@ -21,19 +22,19 @@ import time
 
 parser = argparse.ArgumentParser(description='PyTorch CSRNet')
 
-parser.add_argument('train_json', metavar='TRAIN',
-                    help='path to train json')
-parser.add_argument('test_json', metavar='TEST',
-                    help='path to test json')
+parser.add_argument('train_path', metavar='TRAIN',
+                    help='path to train data folder')
+parser.add_argument('test_path', metavar='TEST',
+                    help='path to test data folder')
 
 parser.add_argument('--pre', '-p', metavar='PRETRAINED', default=None,type=str,
                     help='path to the pretrained model')
 
-parser.add_argument('gpu',metavar='GPU', type=str,
-                    help='GPU id to use.')
+# parser.add_argument('gpu',metavar='GPU', type=str, default='0',
+#                     help='GPU id to use.')
 
-parser.add_argument('task',metavar='TASK', type=str,
-                    help='task id to use.')
+# parser.add_argument('task',metavar='TASK', type=str, default='0',
+#                     help='task id to use.')
 
 def main():
     
@@ -54,19 +55,21 @@ def main():
     args.workers = 4
     args.seed = time.time()
     args.print_freq = 30
-    with open(args.train_json, 'r') as outfile:        
-        train_list = json.load(outfile)
-    with open(args.test_json, 'r') as outfile:       
-        val_list = json.load(outfile)
     
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-    torch.cuda.manual_seed(args.seed)
+    train_list, test_list = getTrainAndTestListFromPath(args.train_path, args.test_path)
+    
+    print('cuda available? {}'.format(torch.cuda.is_available()))
+    device = torch.device(
+        'cuda') if torch.cuda.is_available() else torch.device('cpu')
+    
+#     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+#     torch.cuda.manual_seed(args.seed)
     
     model = CSRNet()
     
-    model = model.cuda()
+    model = model.to(device)
     
-    criterion = nn.MSELoss(size_average=False).cuda()
+    criterion = nn.MSELoss(size_average=False).to(device)
     
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
@@ -89,7 +92,7 @@ def main():
         
         adjust_learning_rate(optimizer, epoch)
         
-        train(train_list, model, criterion, optimizer, epoch)
+        train(train_list, model, criterion, optimizer, epoch, device)
         prec1 = validate(val_list, model, criterion)
         
         is_best = prec1 < best_prec1
@@ -104,7 +107,21 @@ def main():
             'optimizer' : optimizer.state_dict(),
         }, is_best,args.task)
 
-def train(train_list, model, criterion, optimizer, epoch):
+def getTrainAndTestListFromPath(trainPath, testPath):
+    trainPath = Path(trainPath)
+    testPath = Path(testPath)
+    print('trainPath is {}'.format(trainPath))
+    assert trainPath.exists()
+    assert testPath.exists()
+    train_list = []
+    test_list = []
+    for imgPath in (trainPath / 'images').glob('*.jpg'):
+        train_list.append(str(imgPath))
+    for imgPath in (testPath / 'images').glob('*.jpg'):
+        test_list.append(str(imgPath))
+    return train_list, test_list
+
+def train(train_list, model, criterion, optimizer, epoch, device):
     
     losses = AverageMeter()
     batch_time = AverageMeter()
@@ -131,14 +148,11 @@ def train(train_list, model, criterion, optimizer, epoch):
     for i,(img, target)in enumerate(train_loader):
         data_time.update(time.time() - end)
         
-        img = img.cuda()
+        img = img.to(device)
         img = Variable(img)
         output = model(img)
         
-        
-        
-        
-        target = target.type(torch.FloatTensor).unsqueeze(0).cuda()
+        target = target.type(torch.FloatTensor).unsqueeze(0).to(device)
         target = Variable(target)
         
         
@@ -161,7 +175,7 @@ def train(train_list, model, criterion, optimizer, epoch):
                    epoch, i, len(train_loader), batch_time=batch_time,
                    data_time=data_time, loss=losses))
     
-def validate(val_list, model, criterion):
+def validate(val_list, model, criterion, device):
     print ('begin test')
     test_loader = torch.utils.data.DataLoader(
     dataset.listDataset(val_list,
@@ -177,11 +191,11 @@ def validate(val_list, model, criterion):
     mae = 0
     
     for i,(img, target) in enumerate(test_loader):
-        img = img.cuda()
+        img = img.to(device)
         img = Variable(img)
         output = model(img)
         
-        mae += abs(output.data.sum()-target.sum().type(torch.FloatTensor).cuda())
+        mae += abs(output.data.sum()-target.sum().type(torch.FloatTensor).to(device))
         
     mae = mae/len(test_loader)    
     print(' * MAE {mae:.3f} '
