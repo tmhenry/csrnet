@@ -36,8 +36,8 @@ parser.add_argument('--batch_size', '-b', metavar='BATCH', default=1,type=int,
 # parser.add_argument('gpu',metavar='GPU', type=str, default='0',
 #                     help='GPU id to use.')
 
-# parser.add_argument('task',metavar='TASK', type=str, default='0',
-#                     help='task id to use.')
+parser.add_argument('--task','-t', metavar='TASK', type=str, default='0',
+                    help='task id to use.')
 
 def main():
     
