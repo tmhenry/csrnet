@@ -93,7 +93,7 @@ def main():
         adjust_learning_rate(optimizer, epoch)
         
         train(train_list, model, criterion, optimizer, epoch, device)
-        prec1 = validate(val_list, model, criterion)
+        prec1 = validate(test_list, model, criterion, device)
         
         is_best = prec1 < best_prec1
         best_prec1 = min(prec1, best_prec1)
@@ -119,6 +119,8 @@ def getTrainAndTestListFromPath(trainPath, testPath):
         train_list.append(str(imgPath))
     for imgPath in (testPath / 'images').glob('*.jpg'):
         test_list.append(str(imgPath))
+    print('train_list length is', len(train_list))
+    print('test_list length is', len(test_list))
     return train_list, test_list
 
 def train(train_list, model, criterion, optimizer, epoch, device):
