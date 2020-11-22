@@ -30,6 +30,9 @@ parser.add_argument('test_path', metavar='TEST',
 parser.add_argument('--pre', '-p', metavar='PRETRAINED', default=None,type=str,
                     help='path to the pretrained model')
 
+parser.add_argument('--batch_size', '-b', metavar='BATCH', default=1,type=int,
+                    help='batch size')
+
 # parser.add_argument('gpu',metavar='GPU', type=str, default='0',
 #                     help='GPU id to use.')
 
@@ -43,9 +46,10 @@ def main():
     best_prec1 = 1e6
     
     args = parser.parse_args()
+    print(args)
     args.original_lr = 1e-7
     args.lr = 1e-7
-    args.batch_size    = 1
+#     args.batch_size    = 9
     args.momentum      = 0.95
     args.decay         = 5*1e-4
     args.start_epoch   = 0
@@ -58,6 +62,7 @@ def main():
     
     train_list, test_list = getTrainAndTestListFromPath(args.train_path, args.test_path)
     
+    print('batch size is ', args.batch_size)
     print('cuda available? {}'.format(torch.cuda.is_available()))
     device = torch.device(
         'cuda') if torch.cuda.is_available() else torch.device('cpu')
