@@ -40,13 +40,18 @@ class listDataset(Dataset):
         #img[2,:,:]=img[2,:,:]-104.877445883
         
         if self.transform is not None:
-            for i in range(len(self.transform)):
-                t = self.transform[i]
-                img = t(img)
-                # transform target only for resize and randomCrop
-                if i != 3:
-                    target = t(target)
-                else:
-                    target = F.resize(target, 96)
+            if train:
+                for i in range(len(self.transform)):
+                    t = self.transform[i]
+                    img = t(img)
+                    # transform target only for resize and randomCrop
+                    if i != 3:
+                        target = t(target)
+                    else:
+                        target = F.resize(target, 96)
+            else:
+                img = self.transform(img)
+                target = cv2.resize(target,(target.shape[1]//8,target.shape[0]//8),interpolation = cv2.INTER_CUBIC)*64
+                target = F.to_tensor(target)
 
         return img,target
