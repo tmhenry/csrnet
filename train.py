@@ -12,6 +12,9 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torchvision import datasets, transforms
+from torch.utils.data import random_split
+
+from torch.utils.tensorboard import SummaryWriter
 
 import numpy as np
 import argparse
@@ -61,9 +64,11 @@ def main():
     args.print_freq = 30
     
     train_list, test_list = getTrainAndTestListFromPath(args.train_path, args.test_path)
+    splitRatio = 0.8
     
     print('batch size is ', args.batch_size)
     print('cuda available? {}'.format(torch.cuda.is_available()))
+    
     device = torch.device(
         'cuda') if torch.cuda.is_available() else torch.device('cpu')
     
@@ -92,13 +97,15 @@ def main():
                   .format(args.pre, checkpoint['epoch']))
         else:
             print("=> no checkpoint found at '{}'".format(args.pre))
-            
+    
     for epoch in range(args.start_epoch, args.epochs):
         
         adjust_learning_rate(optimizer, epoch)
         
-        train(train_list, model, criterion, optimizer, epoch, device)
-        prec1 = validate(test_list, model, criterion, device)
+        subsetTrain, subsetValid = getTrainAndValidateList(train_list, splitRatio)
+        
+        train(subsetTrain, model, criterion, optimizer, epoch, device)
+        prec1 = validate(subsetValid, model, criterion, device)
         
         is_best = prec1 < best_prec1
         best_prec1 = min(prec1, best_prec1)
@@ -111,6 +118,18 @@ def main():
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
         }, is_best,args.task)
+
+def getTrainAndValidateList(train_list, ratio=0.8):
+    perm = np.random.permutation(len(train_list))
+    subsetTrain = []
+    subsetValid = []
+    for i in range(len(perm)):
+        index = perm[i]
+        if i < ratio*len(perm):
+            subsetTrain.append(train_list[index])
+        else:
+            subsetValid.append(train_list[index])
+    return subsetTrain, subsetValid
 
 def getTrainAndTestListFromPath(trainPath, testPath):
     trainPath = Path(trainPath)
@@ -138,10 +157,13 @@ def train(train_list, model, criterion, optimizer, epoch, device):
     train_loader = torch.utils.data.DataLoader(
         dataset.listDataset(train_list,
                        shuffle=True,
-                       transform=transforms.Compose([
-                       transforms.ToTensor(),transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                       transform=[
+                       transforms.ToTensor(),
+                       transforms.Resize(768),
+                       transforms.RandomCrop(768),
+                       transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225]),
-                   ]), 
+                   ], 
                        train=True, 
                        seen=model.seen,
                        batch_size=args.batch_size,
@@ -159,9 +181,8 @@ def train(train_list, model, criterion, optimizer, epoch, device):
         img = Variable(img)
         output = model(img)
         
-        target = target.type(torch.FloatTensor).unsqueeze(0).to(device)
+        target = target.type(torch.FloatTensor).to(device)
         target = Variable(target)
-        
         
         loss = criterion(output, target)
         

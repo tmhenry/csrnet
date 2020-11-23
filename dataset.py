@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 from image import *
 import torchvision.transforms.functional as F
+import cv2
 
 class listDataset(Dataset):
     def __init__(self, root, shape=None, shuffle=True, transform=None,  train=False, seen=0, batch_size=1, num_workers=4):
@@ -37,10 +38,15 @@ class listDataset(Dataset):
         #img[0,:,:]=img[0,:,:]-92.8207477031
         #img[1,:,:]=img[1,:,:]-95.2757037428
         #img[2,:,:]=img[2,:,:]-104.877445883
-
-
-        
         
         if self.transform is not None:
-            img = self.transform(img)
+            for i in range(len(self.transform)):
+                t = self.transform[i]
+                img = t(img)
+                # transform target only for resize and randomCrop
+                if i != 3:
+                    target = t(target)
+                else:
+                    target = F.resize(target, 96)
+
         return img,target
