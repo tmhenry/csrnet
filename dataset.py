@@ -40,7 +40,7 @@ class listDataset(Dataset):
         #img[2,:,:]=img[2,:,:]-104.877445883
         
         if self.transform is not None:
-            if train:
+            if self.train:
                 for i in range(len(self.transform)):
                     t = self.transform[i]
                     img = t(img)
