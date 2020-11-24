@@ -216,7 +216,9 @@ def validate(val_list, model, criterion, device):
                        transforms.RandomCrop(768),
                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225]),
-                   ],  train=False),
+                   ],
+                   batch_size=args.batch_size,
+                   train=False),
     batch_size=args.batch_size)    
     
     model.eval()
