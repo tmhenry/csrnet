@@ -40,7 +40,8 @@ class listDataset(Dataset):
         #img[2,:,:]=img[2,:,:]-104.877445883
         
         if self.transform is not None:
-            if self.train:
+            # resize and randomCrop when batch size is not 1
+            if self.batch_size > 1:
                 for i in range(len(self.transform)):
                     t = self.transform[i]
                     img = t(img)
@@ -50,7 +51,10 @@ class listDataset(Dataset):
                     else:
                         target = F.resize(target, 96)
             else:
-                img = self.transform(img)
+                for i in range(len(self.transform)):
+                    # pass all the resize and randomCrop
+                    if i != 1 and i != 2:
+                        img = t(img)
                 target = cv2.resize(target,(target.shape[1]//8,target.shape[0]//8),interpolation = cv2.INTER_CUBIC)*64
                 target = F.to_tensor(target)
 

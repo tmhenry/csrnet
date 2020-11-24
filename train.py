@@ -194,6 +194,8 @@ def train(train_list, model, criterion, optimizer, epoch, device):
         batch_time.update(time.time() - end)
         end = time.time()
         
+        break
+        
         if i % args.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -208,10 +210,13 @@ def validate(val_list, model, criterion, device):
     test_loader = torch.utils.data.DataLoader(
     dataset.listDataset(val_list,
                    shuffle=False,
-                   transform=transforms.Compose([
-                       transforms.ToTensor(),transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                   transform=[
+                       transforms.ToTensor(),
+                       transforms.Resize(768),
+                       transforms.RandomCrop(768),
+                       transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225]),
-                   ]),  train=False),
+                   ],  train=False),
     batch_size=args.batch_size)    
     
     model.eval()
