@@ -54,6 +54,7 @@ class listDataset(Dataset):
                 for i in range(len(self.transform)):
                     # pass all the resize and randomCrop
                     if i != 1 and i != 2:
+                        t = self.transform[i]
                         img = t(img)
                 target = cv2.resize(target,(target.shape[1]//8,target.shape[0]//8),interpolation = cv2.INTER_CUBIC)*64
                 target = F.to_tensor(target)
