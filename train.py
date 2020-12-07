@@ -215,9 +215,9 @@ def validate(val_list, model, criterion, device):
                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225]),
                    ],
-                   batch_size=args.batch_size,
+                   batch_size=1,
                    train=False),
-    batch_size=args.batch_size)    
+    batch_size=1)    
     
     model.eval()
     
